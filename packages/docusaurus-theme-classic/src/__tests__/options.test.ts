@@ -12,15 +12,18 @@ import {
   normalizePluginOptions,
 } from '@docusaurus/utils-validation';
 import {themes} from 'prism-react-renderer';
-import {ThemeConfigSchema, DEFAULT_CONFIG, validateOptions} from '../options';
+import {validateThemeConfig, DEFAULT_CONFIG, validateOptions} from '../options';
 import type {Options, PluginOptions} from '@docusaurus/theme-classic';
 import type {ThemeConfig} from '@docusaurus/theme-common';
 import type {Validate} from '@docusaurus/types';
 
 function testValidateThemeConfig(partialThemeConfig: {[key: string]: unknown}) {
-  return normalizeThemeConfig(ThemeConfigSchema, {
-    ...DEFAULT_CONFIG,
-    ...partialThemeConfig,
+  return validateThemeConfig({
+    validate: (schema, config) => normalizeThemeConfig(schema, config),
+    themeConfig: {
+      ...DEFAULT_CONFIG,
+      ...partialThemeConfig,
+    } as ThemeConfig,
   });
 }
 
@@ -142,7 +145,7 @@ describe('themeConfig', () => {
       },
     });
   });
-
+  /// //////////////////////////////////////////////////////////////////////////////
   it('rejects outdated sidebar options', () => {
     expect(() =>
       testValidateThemeConfig({hideableSidebar: true}),

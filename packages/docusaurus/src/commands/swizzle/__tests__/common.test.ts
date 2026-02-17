@@ -5,7 +5,27 @@
  * LICENSE file in the root directory of this source tree.
  */
 
-import {findStringIgnoringCase, findClosestValue} from '../common';
+// Must be before importing ../common
+import logger from '@docusaurus/logger';
+import {
+  findStringIgnoringCase,
+  findClosestValue,
+  actionStatusColor,
+  actionStatusSuffix,
+} from '../common';
+
+jest.mock('@docusaurus/logger', () => {
+  const green = jest.fn((str: string) => `GREEN(${str})`);
+  const yellow = jest.fn((str: string) => `YELLOW(${str})`);
+  const red = jest.fn((str: string) => `RED(${str})`);
+
+  return {
+    __esModule: true,
+    default: {green, yellow, red},
+    // (optional but harmless) in case something imports {logger}
+    logger: {green, yellow, red},
+  };
+});
 
 describe('findStringIgnoringCase', () => {
   it('exact match', () => {
@@ -134,5 +154,51 @@ describe('findClosestValue', () => {
   it('returns first match when multiple candidates have same distance', () => {
     const matches = findClosestValue('fooz', ['foaz', 'fozz', 'barz']);
     expect(matches).toBe('foaz');
+  });
+});
+
+describe('swizzle status helpers', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  describe('actionStatusColor', () => {
+    it('safe -> logger.green', () => {
+      expect(actionStatusColor('safe', 'X')).toBe('GREEN(X)');
+      expect(logger.green as jest.Mock).toHaveBeenCalledWith('X');
+    });
+
+    it('unsafe -> logger.yellow', () => {
+      expect(actionStatusColor('unsafe', 'X')).toBe('YELLOW(X)');
+      expect(logger.yellow as jest.Mock).toHaveBeenCalledWith('X');
+    });
+
+    it('forbidden -> logger.red', () => {
+      expect(actionStatusColor('forbidden', 'X')).toBe('RED(X)');
+      expect(logger.red as jest.Mock).toHaveBeenCalledWith('X');
+    });
+  });
+
+  describe('actionStatusSuffix', () => {
+    it('safe includes colored label; partiallySafe adds hint', () => {
+      expect(actionStatusSuffix('safe')).toBe(' (GREEN(Safe))');
+      expect(actionStatusSuffix('safe', {partiallySafe: true})).toBe(
+        ' (GREEN(Safe)RED(*))',
+      );
+    });
+
+    it('unsafe includes colored label; partiallySafe adds hint', () => {
+      expect(actionStatusSuffix('unsafe')).toBe(' (YELLOW(Unsafe))');
+      expect(actionStatusSuffix('unsafe', {partiallySafe: true})).toBe(
+        ' (YELLOW(Unsafe)RED(*))',
+      );
+    });
+
+    it('forbidden includes colored label; partiallySafe adds hint', () => {
+      expect(actionStatusSuffix('forbidden')).toBe(' (RED(Forbidden))');
+      expect(actionStatusSuffix('forbidden', {partiallySafe: true})).toBe(
+        ' (RED(Forbidden)RED(*))',
+      );
+    });
   });
 });

@@ -11,8 +11,13 @@ import {
   type PluginOptions,
   type Options,
   DEFAULT_OPTIONS,
+  validateThemeConfig,
 } from '../options';
-import type {Validate} from '@docusaurus/types';
+import type {
+  ThemeConfig,
+  ThemeConfigValidationContext,
+  Validate,
+} from '@docusaurus/types';
 
 function testValidateOptions(options: Options) {
   return validateOptions({
@@ -31,6 +36,12 @@ function validationResult(options: Options) {
         ? [options.trackingID]
         : options.trackingID,
   };
+}
+
+function testValidateThemeConfig(themeConfig: ThemeConfig) {
+  return validateThemeConfig({
+    themeConfig,
+  } as ThemeConfigValidationContext<ThemeConfig>);
 }
 
 const MinimalConfig: Options = {
@@ -151,6 +162,50 @@ describe('validateOptions', () => {
       testValidateOptions(config),
     ).toThrowErrorMatchingInlineSnapshot(
       `""trackingID" does not match any of the allowed types"`,
+    );
+  });
+});
+
+describe('validateThemeConfig', () => {
+  it('returns themeConfig if no gtag field is present', () => {
+    const config = {
+      navbar: {
+        title: 'My Site',
+      },
+    } as ThemeConfig;
+
+    expect(testValidateThemeConfig(config)).toBe(config);
+  });
+
+  it('returns empty object if no gtag field is present', () => {
+    const config = {} as ThemeConfig;
+
+    expect(testValidateThemeConfig(config)).toBe(config);
+  });
+
+  it('throws if gtag field is present', () => {
+    const config = {
+      gtag: {
+        trackingID: 'G-XYZ12345',
+      },
+    } as ThemeConfig;
+
+    expect(() =>
+      testValidateThemeConfig(config),
+    ).toThrowErrorMatchingInlineSnapshot(
+      `"The "gtag" field in themeConfig should now be specified as option for plugin-google-gtag. More information at https://github.com/facebook/docusaurus/pull/5832."`,
+    );
+  });
+
+  it('throws even if gtag is undefined', () => {
+    const config = {
+      gtag: undefined,
+    } as ThemeConfig;
+
+    expect(() =>
+      testValidateThemeConfig(config),
+    ).toThrowErrorMatchingInlineSnapshot(
+      `"The "gtag" field in themeConfig should now be specified as option for plugin-google-gtag. More information at https://github.com/facebook/docusaurus/pull/5832."`,
     );
   });
 });

@@ -12,7 +12,7 @@ import {groupBy} from '@docusaurus/theme-common';
 import {isSamePath} from '@docusaurus/theme-common/internal';
 import type {BlogSidebarItem} from '@docusaurus/plugin-content-blog';
 
-function isVisible(item: BlogSidebarItem, pathname: string): boolean {
+export function isVisible(item: BlogSidebarItem, pathname: string): boolean {
   if (item.unlisted && !isSamePath(item.permalink, pathname)) {
     return false;
   }

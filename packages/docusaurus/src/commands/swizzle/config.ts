@@ -12,7 +12,7 @@ import {getPluginByThemeName} from './themes';
 import type {SwizzleComponentConfig, SwizzleConfig} from '@docusaurus/types';
 import type {SwizzlePlugin} from './common';
 
-function getModuleSwizzleConfig(
+export function getModuleSwizzleConfig(
   swizzlePlugin: SwizzlePlugin,
 ): SwizzleConfig | undefined {
   const getSwizzleConfig =
@@ -79,6 +79,11 @@ export function normalizeSwizzleConfig(
 
   // Ensure all components always declare all actions
   Object.values(swizzleConfig.components).forEach((componentConfig) => {
+    if (!componentConfig.actions) {
+      // SET ACTIONS TO A DEFAULT VALUE WHEN NOT PRESENT
+      componentConfig.actions = {} as SwizzleComponentConfig['actions'];
+    }
+
     SwizzleActions.forEach((action) => {
       if (!componentConfig.actions[action]) {
         componentConfig.actions[action] = 'unsafe';

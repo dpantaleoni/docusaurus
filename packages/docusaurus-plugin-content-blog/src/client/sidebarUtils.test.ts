@@ -5,6 +5,10 @@
  * LICENSE file in the root directory of this source tree.
  */
 
+/**
+ * @jest-environment jsdom
+ */
+
 import * as Router from '@docusaurus/router';
 import {renderHook} from '@testing-library/react';
 import {

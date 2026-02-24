@@ -5,7 +5,7 @@
  * LICENSE file in the root directory of this source tree.
  */
 
-import {normalizeSwizzleConfig} from '../config';
+import {normalizeSwizzleConfig, getModuleSwizzleConfig} from '../config';
 import type {SwizzleConfig} from '@docusaurus/types';
 
 describe('normalizeSwizzleConfig', () => {
@@ -109,5 +109,97 @@ describe('normalizeSwizzleConfig', () => {
     ).toThrowErrorMatchingInlineSnapshot(
       `"Swizzle config does not match expected schema: "components.MyComponent.actions.eject" must be one of [safe, unsafe, forbidden]"`,
     );
+  });
+
+  // 1. accepts component with no actions object
+  it(`accept component with no actions object`, () => {
+    const raw = {
+      components: {
+        // no actions object
+        MyComponent: {},
+      },
+    } as unknown as SwizzleConfig;
+    const result = normalizeSwizzleConfig(raw);
+    expect(result).toEqual({
+      components: {
+        MyComponent: {
+          actions: {
+            eject: 'unsafe',
+            wrap: 'unsafe',
+          },
+        },
+      },
+    });
+  });
+
+  // 2. accepts components with no description field
+  it(`accepts components with no description field`, () => {
+    const raw = {
+      components: {
+        MyComponent: {
+          actions: {
+            wrap: 'safe',
+            eject: 'unsafe',
+          },
+        },
+      },
+    } as unknown as SwizzleConfig;
+    const result = normalizeSwizzleConfig(raw);
+    expect(result).toEqual({
+      components: {
+        MyComponent: {
+          actions: {
+            wrap: 'safe',
+            eject: 'unsafe',
+          },
+        },
+      },
+    });
+  });
+
+  // 3. accepts components with partial config
+  it(`accepts component with empty actions object`, () => {
+    const raw = {
+      components: {
+        MyComponent: {
+          actions: {
+            wrap: 'safe',
+          },
+        },
+      },
+    } as unknown as SwizzleConfig;
+    const result = normalizeSwizzleConfig(raw);
+    expect(result.components.MyComponent.actions).toBeDefined();
+  });
+});
+
+describe('getModuleSwizzleConfig', () => {
+  // 4.
+  it(`getSwizzleComponentList valid config with empty components`, () => {
+    const mockPlugin = {
+      plugin: {
+        plugin: {
+          getSwizzleConfig: () => ({
+            components: {},
+          }),
+        },
+      },
+    } as Parameters<typeof getModuleSwizzleConfig>[0];
+
+    const result = getModuleSwizzleConfig(mockPlugin);
+    expect(result).toEqual({components: {}});
+  });
+
+  // 5.
+  it(`returns undefined when no swizzle methods are provided`, () => {
+    const mockPlugin = {
+      plugin: {
+        plugin: {},
+      },
+    } as Parameters<typeof getModuleSwizzleConfig>[0];
+
+    const result = getModuleSwizzleConfig(mockPlugin);
+
+    expect(result).toBeUndefined();
   });
 });

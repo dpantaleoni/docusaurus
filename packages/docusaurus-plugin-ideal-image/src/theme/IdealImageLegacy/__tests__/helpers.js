@@ -2,7 +2,6 @@ import {
   // guessMaxImageWidth,
   bytesToSize,
   selectSrc,
-  fallbackParams,
 } from '../components/helpers';
 
 /*
@@ -168,18 +167,3 @@ describe('selectSrc', () => {
     expect(result).toEqual(expected);
   });
 });
-
-/*
-describe('fallbackParams', () => {
-  it('Should return an empty object when run in the browser environment', () => {
-    const result = fallbackParams({
-      srcSet: [
-        {
-          format: 'webp',
-        },
-      ],
-    });
-    expect(result).toEqual({});
-  });
-});
- */

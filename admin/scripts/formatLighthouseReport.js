@@ -20,8 +20,15 @@ const summaryKeys = {
 /** @param {number} rawScore */
 const scoreEntry = (rawScore) => {
   const score = Math.round(rawScore * 100);
-  // eslint-disable-next-line no-nested-ternary
-  const scoreIcon = score >= 90 ? '🟢' : score >= 50 ? '🟠' : '🔴';
+  let scoreIcon;
+  if (score >= 90) {
+    scoreIcon = '🟢';
+  } else if (score >= 50) {
+    scoreIcon = '🟠';
+  } else {
+    scoreIcon = '🔴';
+  }
+
   return `${scoreIcon} ${score}`;
 };
 

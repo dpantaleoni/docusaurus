@@ -29,9 +29,9 @@ function getTerserParallel() {
     terserParallel = false;
   } else if (
     process.env.TERSER_PARALLEL &&
-    parseInt(process.env.TERSER_PARALLEL, 10) > 0
+    Number.parseInt(process.env.TERSER_PARALLEL, 10) > 0
   ) {
-    terserParallel = parseInt(process.env.TERSER_PARALLEL, 10);
+    terserParallel = Number.parseInt(process.env.TERSER_PARALLEL, 10);
   }
   return terserParallel;
 }

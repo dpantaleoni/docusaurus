@@ -238,7 +238,7 @@ function getSearchPageTitle(searchQuery: string | undefined): string {
       });
 }
 
-function SearchPageContent(): ReactNode {
+function useAlgoliaSearchPage() {
   const {
     i18n: {currentLocale},
   } = useDocusaurusContext();
@@ -246,7 +246,6 @@ function SearchPageContent(): ReactNode {
     algolia: {appId, apiKey, indexName, contextualSearch},
   } = useAlgoliaThemeConfig();
   const processSearchResultUrl = useSearchResultUrlProcessor();
-  const documentsFoundPlural = useDocumentsFoundPlural();
 
   const docsSearchVersionsHelpers = useDocsSearchVersionsHelpers();
   const [searchQuery, setSearchQuery] = useSearchQueryString();
@@ -438,6 +437,29 @@ function SearchPageContent(): ReactNode {
 
     makeSearch(searchResultState.lastPage);
   }, [makeSearch, searchResultState.lastPage]);
+
+  return {
+    searchQuery,
+    setSearchQuery,
+    searchResultState,
+    setLoaderRef,
+    docsSearchVersionsHelpers,
+    pageTitle,
+    contextualSearch,
+  };
+}
+
+function SearchPageContent(): ReactNode {
+  const documentsFoundPlural = useDocumentsFoundPlural();
+  const {
+    searchQuery,
+    setSearchQuery,
+    searchResultState,
+    setLoaderRef,
+    docsSearchVersionsHelpers,
+    pageTitle,
+    contextualSearch,
+  } = useAlgoliaSearchPage();
 
   return (
     <Layout>

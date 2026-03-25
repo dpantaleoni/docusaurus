@@ -535,4 +535,46 @@ describe('getTagsFile', () => {
 
     await expect(getTagsFile(params)).resolves.toBeNull();
   });
+
+  async function createTestTagsFileFromYamlContent({
+    filePath,
+    yamlContent,
+  }: {
+    filePath: string;
+    yamlContent: string;
+  }): Promise<{dir: string}> {
+    const contentPath = (
+      await tmp.dir({
+        prefix: 'jest-createTmpSiteDir',
+      })
+    ).path;
+    const finalFilePath = path.join(contentPath, filePath);
+    await fs.writeFile(finalFilePath, yamlContent);
+    return {dir: contentPath};
+  }
+
+  it.each(['__proto__', 'constructor', 'prototype'])(
+    'rejects poison keys in tags file',
+    async (poisonKey) => {
+      const {dir} = await createTestTagsFileFromYamlContent({
+        filePath: 'tags.yml',
+        yamlContent: [
+          `${poisonKey}:`,
+          '  label: Evil',
+          '  permalink: /evil',
+          '  description: pwned',
+          '',
+        ].join('\n'),
+      });
+
+      const params: Params = {
+        contentPaths: {contentPath: dir, contentPathLocalized: dir},
+        tags: 'tags.yml',
+      };
+
+      await expect(getTagsFile(params)).rejects.toThrow(
+        /There was an error extracting tags from file/i,
+      );
+    },
+  );
 });

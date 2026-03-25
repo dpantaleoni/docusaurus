@@ -18,6 +18,7 @@ import transformAdmonitions from './remark/admonitions';
 import unusedDirectivesWarning from './remark/unusedDirectives';
 import codeCompatPlugin from './remark/mdx1Compat/codeCompatPlugin';
 import {getFormat} from './format';
+import type {Pluggable} from 'unified';
 import type {WebpackCompilerName} from '@docusaurus/utils';
 import type {MDXFrontMatter} from './frontMatter';
 import type {Options} from './options';
@@ -26,11 +27,6 @@ import type {PluginOptions as ResolveMarkdownLinksOptions} from './remark/resolv
 import type {PluginOptions as TransformLinksOptions} from './remark/transformLinks';
 import type {PluginOptions as TransformImageOptions} from './remark/transformImage';
 import type {ProcessorOptions} from '@mdx-js/mdx';
-
-// TODO as of April 2023, no way to import/re-export this ESM type easily :/
-// This might change soon, likely after TS 5.2
-// See https://github.com/microsoft/TypeScript/issues/49721#issuecomment-1517839391
-type Pluggable = any; // TODO fix this asap
 
 export type SimpleProcessorResult = {
   content: string;

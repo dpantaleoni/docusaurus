@@ -74,9 +74,14 @@ export function unwrapMdxCodeBlocks(content: string): string {
   const regexp4 =
     /(?<begin>^|\r?\n)(?<indentStart>\x20*)````(?<spaces>\x20*)mdx-code-block\r?\n(?<children>.*?)\r?\n(?<indentEnd>\x20*)````(?<end>\r?\n|$)/gs;
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const replacer = (substring: string, ...args: any[]) => {
-    const groups = args.at(-1);
+  type MdxCodeBlockGroups = {
+    begin: string;
+    children: string;
+    end: string;
+  };
+
+  const replacer = (_substring: string, ..._args: unknown[]): string => {
+    const groups = _args.at(-1) as MdxCodeBlockGroups;
     return `${groups.begin}${groups.children}${groups.end}`;
   };
 

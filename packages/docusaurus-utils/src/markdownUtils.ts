@@ -105,13 +105,23 @@ export function admonitionTitleToDirectiveLabel(
     'gm',
   );
 
-  return content.replaceAll(regexp, (substring, ...args: any[]) => {
-    const groups = args.at(-1);
+  type AdmonitionTitleGroups = {
+    quote: string | undefined;
+    indentation: string | undefined;
+    directive: string;
+    title: string;
+  };
 
-    return `${groups.quote ?? ''}${groups.indentation ?? ''}${
-      groups.directive
-    }[${groups.title}]`;
-  });
+  return content.replaceAll(
+    regexp,
+    (_substring: string, ..._args: unknown[]) => {
+      const groups = _args.at(-1) as AdmonitionTitleGroups;
+
+      return `${groups.quote ?? ''}${groups.indentation ?? ''}${
+        groups.directive
+      }[${groups.title}]`;
+    },
+  );
 }
 
 // TODO: Find a better way to do so, possibly by compiling the Markdown content,

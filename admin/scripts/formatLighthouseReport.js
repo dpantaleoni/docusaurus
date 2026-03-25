@@ -17,11 +17,17 @@ const summaryKeys = {
   seo: 'SEO',
 };
 
+/** @param {number} score */
+const iconForScore = (score) => {
+  if (score >= 90) {return '🟢';}
+  if (score >= 50) {return '🟠';}
+  return '🔴';
+};
+
 /** @param {number} rawScore */
 const scoreEntry = (rawScore) => {
   const score = Math.round(rawScore * 100);
-  // eslint-disable-next-line no-nested-ternary
-  const scoreIcon = score >= 90 ? '🟢' : score >= 50 ? '🟠' : '🔴';
+  const scoreIcon = iconForScore(score);
   return `${scoreIcon} ${score}`;
 };
 

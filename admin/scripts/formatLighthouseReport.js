@@ -19,8 +19,12 @@ const summaryKeys = {
 
 /** @param {number} score */
 const iconForScore = (score) => {
-  if (score >= 90) {return '🟢';}
-  if (score >= 50) {return '🟠';}
+  if (score >= 90) {
+    return '🟢';
+  }
+  if (score >= 50) {
+    return '🟠';
+  }
   return '🔴';
 };
 

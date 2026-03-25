@@ -54,7 +54,7 @@ export function getPluginI18nPath({
 }: {
   localizationDir: string;
   pluginName: string;
-  pluginId?: string | undefined;
+  pluginId?: string;
   subPaths?: string[];
 }): string {
   return path.join(

@@ -18,8 +18,10 @@ import type {
   TagsPluginOptions,
 } from '@docusaurus/utils';
 
+const poisonKeys = ['__proto__', 'constructor', 'prototype'];
+
 const TagsFileInputSchema = Joi.object<TagsFileInput>().pattern(
-  Joi.string(),
+  Joi.string().invalid(...poisonKeys),
   Joi.object({
     label: Joi.string(),
     description: Joi.string(),

@@ -249,7 +249,9 @@ describe('simple site', () => {
   it('readVersionDocs', async () => {
     const {options, currentVersion} = await loadSite();
     const docs = await readVersionDocs(currentVersion, options);
-    expect(docs.map((doc) => doc.source).sort()).toEqual(
+    expect(
+      docs.map((doc) => doc.source).sort((a, b) => a.localeCompare(b)),
+    ).toEqual(
       [
         'hello.md',
         'ipsum.md',
@@ -273,7 +275,7 @@ describe('simple site', () => {
         'slugs/tryToEscapeSlug.md',
         'unlisted-category/index.md',
         'unlisted-category/unlisted-category-doc.md',
-      ].sort(),
+      ].sort((a, b) => a.localeCompare(b)),
     );
   });
 

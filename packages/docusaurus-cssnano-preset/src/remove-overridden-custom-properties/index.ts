@@ -41,7 +41,7 @@ function creator(): Plugin {
         ? sameProperties.filter((p) => !('important' in p))
         : sameProperties.slice(0, -1);
 
-      overriddenProperties.map((p) => p.remove());
+      overriddenProperties.forEach((p) => p.remove());
     },
   };
 }

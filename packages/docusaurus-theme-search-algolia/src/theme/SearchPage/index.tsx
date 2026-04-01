@@ -238,7 +238,59 @@ function getSearchPageTitle(searchQuery: string | undefined): string {
       });
 }
 
-function SearchPageContent(): ReactNode {
+function useInfiniteScroll(
+  onLoadMore: () => void,
+): (node: HTMLDivElement | null) => void {
+  const [loaderRef, setLoaderRef] = useState<HTMLDivElement | null>(null);
+  const prevY = useRef(0);
+  const onLoadMoreRef = useRef(onLoadMore);
+
+  useEffect(() => {
+    onLoadMoreRef.current = onLoadMore;
+  }, [onLoadMore]);
+
+  const observer = useRef<IntersectionObserver | null>(null);
+
+  useEffect(() => {
+    if (!ExecutionEnvironment.canUseIntersectionObserver) {
+      return undefined;
+    }
+
+    observer.current = new IntersectionObserver(
+      (entries) => {
+        const {
+          isIntersecting,
+          boundingClientRect: {y: currentY},
+        } = entries[0]!;
+
+        if (isIntersecting && prevY.current > currentY) {
+          onLoadMoreRef.current();
+        }
+
+        prevY.current = currentY;
+      },
+      {threshold: 1},
+    );
+
+    return () => {
+      observer.current?.disconnect();
+      observer.current = null;
+    };
+  }, []);
+
+  useEffect(() => {
+    const currentObserver = observer.current;
+    if (!loaderRef || !currentObserver) {
+      return undefined;
+    }
+    currentObserver.observe(loaderRef);
+    return () => currentObserver.unobserve(loaderRef);
+  }, [loaderRef]);
+
+  return setLoaderRef;
+}
+
+function useAlgoliaSearchPage() {
   const {
     i18n: {currentLocale},
   } = useDocusaurusContext();
@@ -246,7 +298,6 @@ function SearchPageContent(): ReactNode {
     algolia: {appId, apiKey, indexName, contextualSearch},
   } = useAlgoliaThemeConfig();
   const processSearchResultUrl = useSearchResultUrlProcessor();
-  const documentsFoundPlural = useDocumentsFoundPlural();
 
   const docsSearchVersionsHelpers = useDocsSearchVersionsHelpers();
   const [searchQuery, setSearchQuery] = useSearchQueryString();
@@ -366,28 +417,9 @@ function SearchPageContent(): ReactNode {
     },
   );
 
-  const [loaderRef, setLoaderRef] = useState<HTMLDivElement | null>(null);
-  const prevY = useRef(0);
-  const observer = useRef(
-    ExecutionEnvironment.canUseIntersectionObserver &&
-      new IntersectionObserver(
-        // TODO need to fix this React Compiler lint error
-        // eslint-disable-next-line react-compiler/react-compiler
-        (entries) => {
-          const {
-            isIntersecting,
-            boundingClientRect: {y: currentY},
-          } = entries[0]!;
-
-          if (isIntersecting && prevY.current > currentY) {
-            searchResultStateDispatcher({type: 'advance'});
-          }
-
-          prevY.current = currentY;
-        },
-        {threshold: 1},
-      ),
-  );
+  const setLoaderRef = useInfiniteScroll(() => {
+    searchResultStateDispatcher({type: 'advance'});
+  });
 
   const makeSearch = useEvent((page: number = 0) => {
     if (contextualSearch) {
@@ -408,18 +440,6 @@ function SearchPageContent(): ReactNode {
   });
 
   useEffect(() => {
-    if (!loaderRef) {
-      return undefined;
-    }
-    const currentObserver = observer.current;
-    if (currentObserver) {
-      currentObserver.observe(loaderRef);
-      return () => currentObserver.unobserve(loaderRef);
-    }
-    return () => true;
-  }, [loaderRef]);
-
-  useEffect(() => {
     searchResultStateDispatcher({type: 'reset'});
 
     if (searchQuery) {
@@ -438,6 +458,29 @@ function SearchPageContent(): ReactNode {
 
     makeSearch(searchResultState.lastPage);
   }, [makeSearch, searchResultState.lastPage]);
+
+  return {
+    searchQuery,
+    setSearchQuery,
+    searchResultState,
+    setLoaderRef, // the useState setter used as a callback ref
+    docsSearchVersionsHelpers,
+    pageTitle,
+    contextualSearch,
+  };
+}
+
+function SearchPageContent(): ReactNode {
+  const documentsFoundPlural = useDocumentsFoundPlural();
+  const {
+    searchQuery,
+    setSearchQuery,
+    searchResultState,
+    setLoaderRef,
+    docsSearchVersionsHelpers,
+    pageTitle,
+    contextualSearch,
+  } = useAlgoliaSearchPage();
 
   return (
     <Layout>

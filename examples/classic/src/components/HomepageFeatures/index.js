@@ -1,9 +1,11 @@
 import clsx from 'clsx';
 import Heading from '@theme/Heading';
 import styles from './styles.module.css';
+import PropTypes from 'prop-types';
 
 const FeatureList = [
   {
+    id: 1,
     title: 'Easy to Use',
     Svg: require('@site/static/img/undraw_docusaurus_mountain.svg').default,
     description: (
@@ -14,6 +16,7 @@ const FeatureList = [
     ),
   },
   {
+    id: 2,
     title: 'Focus on What Matters',
     Svg: require('@site/static/img/undraw_docusaurus_tree.svg').default,
     description: (
@@ -24,6 +27,7 @@ const FeatureList = [
     ),
   },
   {
+    id: 3,
     title: 'Powered by React',
     Svg: require('@site/static/img/undraw_docusaurus_react.svg').default,
     description: (
@@ -35,7 +39,7 @@ const FeatureList = [
   },
 ];
 
-function Feature({Svg, title, description}) {
+function Feature({id, Svg, title, description}) {
   return (
     <div className={clsx('col col--4')}>
       <div className="text--center">
@@ -49,13 +53,20 @@ function Feature({Svg, title, description}) {
   );
 }
 
+Feature.propTypes = {
+  id: PropTypes.int.isRequired,
+  Svg: PropTypes.elementType.isRequired,
+  title: PropTypes.string.isRequired,
+  description: PropTypes.node.isRequired,
+};
+
 export default function HomepageFeatures() {
   return (
     <section className={styles.features}>
       <div className="container">
         <div className="row">
-          {FeatureList.map((props, idx) => (
-            <Feature key={idx} {...props} />
+          {FeatureList.map((item) => (
+            <Feature key={item.id} {...item}/>
           ))}
         </div>
       </div>

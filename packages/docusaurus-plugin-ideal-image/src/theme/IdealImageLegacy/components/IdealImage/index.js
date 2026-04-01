@@ -51,11 +51,7 @@ const defaultGetMessage = (icon, state) => {
       const {pickedSrc} = state;
       const {size} = pickedSrc;
       if (size) {
-        return [
-          'Click to load (',
-          <nobr key="nb">{bytesToSize(size)}</nobr>,
-          ')',
-        ];
+        return `Click to load (${bytesToSize(size)})`;
       } else {
         return 'Click to load';
       }

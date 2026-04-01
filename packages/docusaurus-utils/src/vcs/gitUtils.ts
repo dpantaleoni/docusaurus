@@ -5,9 +5,9 @@
  * LICENSE file in the root directory of this source tree.
  */
 
-import path from 'path';
+import path from 'node:path';
 import fs from 'fs-extra';
-import os from 'os';
+import os from 'node:os';
 import _ from 'lodash';
 import execa from 'execa';
 import PQueue from 'p-queue';
@@ -16,13 +16,13 @@ import logger from '@docusaurus/logger';
 // Quite high/conservative concurrency value (it was previously "Infinity")
 // See https://github.com/facebook/docusaurus/pull/10915
 const DefaultGitCommandConcurrency =
-  // TODO Docusaurus v4: bump node, availableParallelism() now always exists
+  // Task for Docusaurus v4: bump node, availableParallelism() now always exists
   (typeof os.availableParallelism === 'function'
     ? os.availableParallelism()
     : os.cpus().length) * 4;
 
 const GitCommandConcurrencyEnv = process.env.DOCUSAURUS_GIT_COMMAND_CONCURRENCY
-  ? parseInt(process.env.DOCUSAURUS_GIT_COMMAND_CONCURRENCY, 10)
+  ? Number.parseInt(process.env.DOCUSAURUS_GIT_COMMAND_CONCURRENCY, 10)
   : undefined;
 
 const GitCommandConcurrency =
@@ -38,9 +38,10 @@ const GitCommandQueue = new PQueue({
 
 const realHasGitFn = () => {
   try {
-    return execa.sync('git', ['--version']).exitCode === 0;
+    const result = execa.sync('git', ['--version'], {stdio: 'pipe'});
+    return {hasGit: result.exitCode === 0, error: null};
   } catch (error) {
-    return false;
+    return {hasGit: false, error};
   }
 };
 
@@ -49,12 +50,12 @@ const realHasGitFn = () => {
 const hasGit =
   process.env.NODE_ENV === 'test' ? realHasGitFn : _.memoize(realHasGitFn);
 
-// TODO Docusaurus v4: remove this
+// task: Docusaurus v4: remove this
 //  Exceptions are not made for control flow logic
 /** Custom error thrown when git is not found in `PATH`. */
 export class GitNotFoundError extends Error {}
 
-// TODO Docusaurus v4: remove this, only kept for retro-compatibility
+// task: Docusaurus v4: remove this, only kept for retro-compatibility
 //  Exceptions are not made for control flow logic
 /** Custom error thrown when the current file is not tracked by git. */
 export class FileNotTrackedError extends Error {}
@@ -83,7 +84,7 @@ export async function getFileCommitDate(
   },
 ): Promise<{
   /** Relevant commit date. */
-  date: Date; // TODO duplicate data, not really useful?
+  date: Date; // duplicate data, not really useful?
   /** Timestamp returned from git, converted to **milliseconds**. */
   timestamp: number;
 }>;
@@ -227,7 +228,7 @@ async function getGitCommitInfo(
     });
     return {timestamp: result.timestamp, author: result.author};
   } catch (err) {
-    // TODO legacy perf issue: do not use exceptions for control flow!
+    // Task: legacy perf issue: do not use exceptions for control flow!
     if (err instanceof GitNotFoundError) {
       if (!showedGitRequirementError) {
         logger.warn('Sorry, the last update options require Git.');
@@ -451,7 +452,7 @@ export async function getGitRepositoryFilesInfo(
     {
       cwd,
       encoding: 'utf-8',
-      // TODO use streaming to avoid a large buffer
+      // Task: use streaming to avoid a large buffer
       // See https://github.com/withastro/starlight/issues/3154
       maxBuffer: 20 * 1024 * 1024,
     },
@@ -468,7 +469,7 @@ The command exited with code ${result.exitCode}: ${result.stderr}`,
 
   const now = Date.now();
 
-  // TODO not fail-fast
+  // Task: not fail-fast
   let runningDate = now;
   let runningAuthor = 'N/A';
   const runningMap: GitFileInfoMap = new Map();
@@ -484,7 +485,7 @@ The command exited with code ${result.exitCode}: ${result.stderr}`,
       runningAuthor = author;
     }
 
-    // TODO the code below doesn't handle delete/move/rename operations properly
+    // Task: the code below doesn't handle delete/move/rename operations properly
     //  it returns files that no longer exist in the repo (deleted/moved)
 
     // - Added files take the format `A\t<file>`

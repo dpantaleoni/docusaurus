@@ -54,7 +54,7 @@ export const unfetch = (url, options) => {
 
       return {
         // eslint-disable-next-line no-bitwise
-        ok: ((request.status / 100) | 0) === 2, // 200-299
+        ok: Math.trunc(request.status / 100) === 2, // 200-299
         status: request.status,
         statusText: request.statusText,
         url: request.responseURL,

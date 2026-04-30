@@ -138,28 +138,18 @@ async function processPageSourceFile(
   const slug = frontMatter.slug ?? filenameSlug;
   const permalink = normalizeUrl([baseUrl, options.routeBasePath, slug]);
 
-  const pagesDirPath = await getFolderContainingFile(
-    getContentPathList(contentPaths),
-    relativeSource,
-  );
-
-  const pagesSourceAbsolute = path.join(pagesDirPath, relativeSource);
-
   function getPagesEditUrl() {
-    const pagesPathRelative = path.relative(
-      pagesDirPath,
-      path.resolve(pagesSourceAbsolute),
-    );
+    const pagesPathRelative = path.relative(contentPath, path.resolve(source));
 
     if (typeof editUrl === 'function') {
       return editUrl({
-        pagesDirPath: posixPath(path.relative(siteDir, pagesDirPath)),
+        pagesDirPath: posixPath(path.relative(siteDir, contentPath)),
         pagesPath: posixPath(pagesPathRelative),
         permalink,
         locale: i18n.currentLocale,
       });
     } else if (typeof editUrl === 'string') {
-      const isLocalized = pagesDirPath === contentPaths.contentPathLocalized;
+      const isLocalized = contentPath === contentPaths.contentPathLocalized;
       const fileContentPath =
         isLocalized &&
         options.editLocalizedFiles &&

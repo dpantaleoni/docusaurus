@@ -86,9 +86,12 @@ function resolveEditUrl(
   editUrl: PluginOptions['editUrl'],
   ctx: EditUrlContext,
 ): string | undefined {
-  if (typeof editUrl === 'function')
-    {return resolveFunctionEditUrl(editUrl, ctx);}
-  if (typeof editUrl === 'string') {return resolveStringEditUrl(editUrl, ctx);}
+  if (typeof editUrl === 'function') {
+    return resolveFunctionEditUrl(editUrl, ctx);
+  }
+  if (typeof editUrl === 'string') {
+    return resolveStringEditUrl(editUrl, ctx);
+  }
   return undefined;
 }
 

@@ -36,10 +36,64 @@ import type {
   PropNavigationLink,
   VersionMetadata,
   LoadedVersion,
+  EditUrlFunction,
 } from '@docusaurus/plugin-content-docs';
 import type {LoadContext} from '@docusaurus/types';
 import type {SidebarsUtils} from './sidebars/utils';
 import type {DocFile} from './types';
+
+type EditUrlContext = {
+  relativeFilePath: string;
+  contentPath: string;
+  permalink: string;
+  versionMetadata: VersionMetadata;
+  locale: string;
+  siteDir: string;
+  editLocalizedFiles: boolean;
+};
+
+function resolveFunctionEditUrl(
+  editUrl: EditUrlFunction,
+  ctx: EditUrlContext,
+): string | undefined {
+  return editUrl({
+    version: ctx.versionMetadata.versionName,
+    versionDocsDirPath: posixPath(
+      path.relative(ctx.siteDir, ctx.versionMetadata.contentPath),
+    ),
+    docPath: posixPath(ctx.relativeFilePath),
+    permalink: ctx.permalink,
+    locale: ctx.locale,
+  });
+}
+
+function resolveStringEditUrl(
+  editUrl: string,
+  ctx: EditUrlContext,
+): string | undefined {
+  const isLocalized =
+    typeof ctx.versionMetadata.contentPathLocalized !== 'undefined' &&
+    ctx.contentPath === ctx.versionMetadata.contentPathLocalized;
+  const baseVersionEditUrl =
+    isLocalized && ctx.editLocalizedFiles
+      ? ctx.versionMetadata.editUrlLocalized
+      : ctx.versionMetadata.editUrl;
+
+  return getEditUrl(ctx.relativeFilePath, baseVersionEditUrl);
+}
+
+function resolveEditUrl(
+  editUrl: PluginOptions['editUrl'],
+  ctx: EditUrlContext,
+): string | undefined {
+  if (typeof editUrl === 'function') {
+    return resolveFunctionEditUrl(editUrl, ctx);
+  }
+  if (typeof editUrl === 'string') {
+    return resolveStringEditUrl(editUrl, ctx);
+  }
+  return undefined;
+}
 
 export async function readDocFile(
   versionMetadata: Pick<
@@ -184,32 +238,6 @@ async function doProcessDocMetadata({
 
   const permalink = normalizeUrl([versionMetadata.path, docSlug]);
 
-  function getDocEditUrl() {
-    const relativeFilePath = path.relative(contentPath, filePath);
-
-    if (typeof options.editUrl === 'function') {
-      return options.editUrl({
-        version: versionMetadata.versionName,
-        versionDocsDirPath: posixPath(
-          path.relative(siteDir, versionMetadata.contentPath),
-        ),
-        docPath: posixPath(relativeFilePath),
-        permalink,
-        locale: context.i18n.currentLocale,
-      });
-    } else if (typeof options.editUrl === 'string') {
-      const isLocalized =
-        typeof versionMetadata.contentPathLocalized !== 'undefined' &&
-        contentPath === versionMetadata.contentPathLocalized;
-      const baseVersionEditUrl =
-        isLocalized && options.editLocalizedFiles
-          ? versionMetadata.editUrlLocalized
-          : versionMetadata.editUrl;
-      return getEditUrl(relativeFilePath, baseVersionEditUrl);
-    }
-    return undefined;
-  }
-
   const draft = isDraft({env, frontMatter});
   const unlisted = isUnlisted({env, frontMatter});
 
@@ -220,6 +248,16 @@ async function doProcessDocMetadata({
     tagsBaseRoutePath: versionMetadata.tagsPath,
     tagsFile,
   });
+
+  const ctx: EditUrlContext = {
+    relativeFilePath: path.relative(contentPath, filePath),
+    contentPath,
+    permalink,
+    versionMetadata,
+    locale: context.i18n.currentLocale,
+    siteDir,
+    editLocalizedFiles: options.editLocalizedFiles,
+  };
 
   // Assign all of object properties during instantiation (if possible) for
   // NodeJS optimization.
@@ -235,7 +273,10 @@ async function doProcessDocMetadata({
     permalink,
     draft,
     unlisted,
-    editUrl: customEditURL !== undefined ? customEditURL : getDocEditUrl(),
+    editUrl:
+      customEditURL !== undefined
+        ? customEditURL
+        : resolveEditUrl(options.editUrl, ctx),
     tags,
     version: versionMetadata.versionName,
     lastUpdatedBy: lastUpdate.lastUpdatedBy,

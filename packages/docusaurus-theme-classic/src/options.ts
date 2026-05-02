@@ -478,6 +478,22 @@ export function validateThemeConfig({
   validate,
   themeConfig,
 }: ThemeConfigValidationContext<ThemeConfig>): ThemeConfig {
+  const config = themeConfig as unknown as Record<string, unknown>;
+  if (config.hideableSidebar !== undefined) {
+    throw new Error(
+      'themeConfig.hideableSidebar has been moved to themeConfig.docs.sidebar.hideable.',
+    );
+  }
+  if (config.autoCollapseSidebarCategories !== undefined) {
+    throw new Error(
+      'themeConfig.autoCollapseSidebarCategories has been moved to themeConfig.docs.sidebar.autoCollapseCategories.',
+    );
+  }
+  if (config.sidebarCollapsible !== undefined) {
+    throw new Error(
+      'The themeConfig.sidebarCollapsible has been moved to docs plugin options. See: https://docusaurus.io/docs/api/plugins/@docusaurus/plugin-content-docs',
+    );
+  }
   return validate(ThemeConfigSchema, themeConfig);
 }
 

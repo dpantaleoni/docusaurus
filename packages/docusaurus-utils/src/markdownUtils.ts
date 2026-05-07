@@ -7,7 +7,9 @@
 
 import logger from '@docusaurus/logger';
 import matter from 'gray-matter';
+import jiti from 'jiti';
 import {createSlugger, type Slugger, type SluggerOptions} from './slugger';
+import type {Content, Root} from 'mdast';
 import type {
   ParseFrontMatter,
   DefaultParseFrontMatter,
@@ -141,80 +143,181 @@ export function admonitionTitleToDirectiveLabel(
  * And for the first contentful line, it will strip away most Markdown
  * syntax, including HTML tags, emphasis, links (keeping the text), etc.
  */
+type RemarkExcerptAdapter = {
+  parse: (content: string) => Root;
+  toString: (node: unknown) => string;
+};
+
+let remarkExcerptAdapter: RemarkExcerptAdapter | undefined;
+
+function getRemarkExcerptAdapter(): RemarkExcerptAdapter {
+  if (remarkExcerptAdapter) {
+    return remarkExcerptAdapter;
+  }
+
+  // remark/unified packages are ESM in recent versions; load them in a
+  // CommonJS-friendly way (Jest, Node).
+  const load = jiti(__filename, {cache: true, interopDefault: false});
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const unified = ((load('unified') as any).unified ??
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (load('unified') as any).default
+      ?.unified) as unknown as typeof import('unified').unified;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const remarkParse = ((load('remark-parse') as any).default ??
+    (load(
+      'remark-parse',
+    ) as any)) as unknown as typeof import('remark-parse').default;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const remarkGfm = ((load('remark-gfm') as any).default ??
+    (load(
+      'remark-gfm',
+    ) as any)) as unknown as typeof import('remark-gfm').default;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const toString = ((load('mdast-util-to-string') as any).toString ??
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (load('mdast-util-to-string') as any).default
+      ?.toString) as unknown as typeof import('mdast-util-to-string').toString;
+
+  const processor = unified().use(remarkParse).use(remarkGfm);
+
+  remarkExcerptAdapter = {
+    parse: (content) => processor.parse(content) as Root,
+    toString,
+  };
+
+  return remarkExcerptAdapter;
+}
+
 export function createExcerpt(fileString: string): string | undefined {
-  const fileLines = fileString
-    .trimStart()
-    // Remove Markdown alternate title
-    .replace(/^[^\r\n]*\r?\n[=]+/g, '')
-    .split(/\r?\n/);
-  let inCode = false;
-  let inImport = false;
-  let lastCodeFence = '';
+  const {parse, toString} = getRemarkExcerptAdapter();
 
-  for (const fileLine of fileLines) {
-    // An empty line marks the end of imports
-    if (!fileLine.trim() && inImport) {
-      inImport = false;
-    }
+  function stripImportExport(content: string): string {
+    const lines = content.split(/\r?\n/);
+    const output: string[] = [];
+    let inImport = false;
+    let inCode = false;
+    let lastCodeFence = '';
 
-    // Skip empty line.
-    if (!fileLine.trim()) {
-      continue;
-    }
-
-    // Skip import/export declaration.
-    if ((/^(?:import|export)\s.*/.test(fileLine) || inImport) && !inCode) {
-      inImport = true;
-      continue;
-    }
-
-    // Skip code block line.
-    if (fileLine.trim().startsWith('```')) {
-      const codeFence = fileLine.trim().match(/^`+/)![0]!;
-      if (!inCode) {
-        inCode = true;
-        lastCodeFence = codeFence;
-        // If we are in a ````-fenced block, all ``` would be plain text instead
-        // of fences
-      } else if (codeFence.length >= lastCodeFence.length) {
-        inCode = false;
+    for (const line of lines) {
+      // Track fenced code blocks; imports/exports inside should be preserved.
+      if (line.trim().startsWith('```')) {
+        const codeFence = line.trim().match(/^`+/)?.[0] ?? '```';
+        if (!inCode) {
+          inCode = true;
+          lastCodeFence = codeFence;
+        } else if (codeFence.length >= lastCodeFence.length) {
+          inCode = false;
+        }
+        output.push(line);
+        continue;
       }
-      continue;
-    } else if (inCode) {
-      continue;
+
+      if (inCode) {
+        output.push(line);
+        continue;
+      }
+
+      // An empty line marks the end of imports.
+      if (!line.trim() && inImport) {
+        inImport = false;
+        output.push(line);
+        continue;
+      }
+
+      if ((/^(?:import|export)\s.*/.test(line) || inImport) && !inCode) {
+        inImport = true;
+        continue;
+      }
+
+      output.push(line);
     }
 
-    const cleanedLine = fileLine
-      // Remove HTML tags.
-      .replace(/<[^>]*>/g, '')
-      // Remove Title headers
-      .replace(/^#[^#]+#?/gm, '')
-      // Remove Markdown + ATX-style headers
-      .replace(/^#{1,6}\s*(?<text>[^#]*?)\s*#{0,6}/gm, '$1')
-      // Remove emphasis.
-      .replace(/(?<opening>[*_]{1,3})(?<text>.*?)\1/g, '$2')
-      // Remove strikethroughs.
-      .replace(/~~(?<text>\S.*\S)~~/g, '$1')
-      // Remove images.
-      .replace(/!\[(?<alt>.*?)\][[(].*?[\])]/g, '$1')
-      // Remove footnotes.
-      .replace(/\[\^.+?\](?:: .*$)?/g, '')
-      // Remove inline links.
-      .replace(/\[(?<alt>.*?)\][[(].*?[\])]/g, '$1')
-      // Remove inline code.
-      .replace(/`(?<text>.+?)`/g, '$1')
-      // Remove blockquotes.
-      .replace(/^\s{0,3}>\s?/g, '')
-      // Remove admonition definition.
-      .replace(/:::.*/, '')
-      // Remove Emoji names within colons include preceding whitespace.
-      .replace(/\s?:(?:::|[^:\n])+:/g, '')
-      // Remove custom Markdown heading id.
-      .replace(/\{#*[\w-]+\}/, '')
-      .trim();
+    return output.join('\n');
+  }
 
-    if (cleanedLine) {
-      return cleanedLine;
+  function cleanupText(text: string): string {
+    return (
+      text
+        // Remove HTML tags.
+        .replace(/<[^>]*>/g, '')
+        // Remove footnotes.
+        .replace(/\[\^.+?\](?:: .*$)?/g, '')
+        // Remove admonition definition.
+        .replace(/:::.*/g, '')
+        // Remove Emoji names within colons include preceding whitespace.
+        .replace(/\s?:(?:::|[^:\n])+:/g, '')
+        // Remove custom Markdown heading id.
+        .replace(/\{#*[\w-]+\}/g, '')
+        .trim()
+    );
+  }
+
+  function toFirstLine(text: string): string | undefined {
+    const firstLine = text
+      .split(/\r?\n/)
+      .map((l) => l.trim())
+      .find(Boolean);
+    return firstLine || undefined;
+  }
+
+  function findFirstContentfulText(node: Content): string | undefined {
+    // Ignore h1 headings.
+    if (node.type === 'heading' && node.depth === 1) {
+      return undefined;
+    }
+    // Ignore fenced/indented code blocks.
+    if (node.type === 'code') {
+      return undefined;
+    }
+
+    // Skip directive fence lines like ":::note"/":::"
+    if (node.type === 'paragraph') {
+      const raw = toString(node).trim();
+      if (raw.startsWith(':::')) {
+        return undefined;
+      }
+    }
+
+    // Handle common leaf-ish nodes.
+    if (node.type === 'paragraph' || node.type === 'heading') {
+      return toFirstLine(cleanupText(toString(node)));
+    }
+
+    // Recurse into containers in source order.
+    if (
+      node.type === 'blockquote' ||
+      node.type === 'list' ||
+      node.type === 'listItem'
+    ) {
+      const children = node.children as Content[];
+      for (const child of children) {
+        const text = findFirstContentfulText(child);
+        if (text) {
+          return text;
+        }
+      }
+      return undefined;
+    }
+
+    // Fallback: use textual representation.
+    return toFirstLine(cleanupText(toString(node)));
+  }
+
+  const content = fileString
+    .trimStart()
+    // Remove Markdown alternate title (setext h1 underline).
+    .replace(/^[^\r\n]*\r?\n[=]+/g, '')
+    // Strip HTML tags early so the AST text extraction keeps inner text.
+    .replace(/<[^>]*>/g, '');
+
+  const tree = parse(stripImportExport(content));
+
+  for (const child of tree.children as Content[]) {
+    const text = findFirstContentfulText(child);
+    if (text) {
+      return text;
     }
   }
 

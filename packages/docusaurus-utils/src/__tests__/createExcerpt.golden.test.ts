@@ -5,7 +5,6 @@
  * LICENSE file in the root directory of this source tree.
  */
 
-import dedent from 'dedent';
 import {createExcerpt} from '../markdownUtils';
 
 describe('createExcerpt (golden)', () => {
@@ -21,24 +20,11 @@ describe('createExcerpt (golden)', () => {
       '![Alt img](/img/foo.png)\n[Link **bold**](https://example.com) and `code` and _em_.',
     'html tags stripped': '<span>Hello</span> <b>world</b>.',
     'admonition fence lines skipped': ':::note\n\nContent inside note.\n\n:::',
-    'imports ignored until blank line': dedent`
-      import A from 'a';
-      export const x = 1;
-
-      Content after imports.
-    `,
+    'imports ignored until blank line':
+      "import A from 'a';\nexport const x = 1;\n\nContent after imports.",
     'fenced code block ignored': '```js\n# Not a heading\n```\n\nReal content.',
-    'nested fences (```` with inner ``` treated as text)': dedent`
-      \`\`\`\`js
-      Foo
-      \`\`\`diff
-      not a fence close
-      \`\`\`
-      Bar
-      \`\`\`\`
-
-      After code.
-    `,
+    'nested fences (```` with inner ``` treated as text)':
+      '````js\nFoo\n```diff\nnot a fence close\n```\nBar\n````\n\nAfter code.',
     'footnotes removed': 'Hello[^1] world.\n\n[^1]: footnote text',
     'mdx jsx line becomes empty': '<Component prop="x" />\n\nActual text.',
   };

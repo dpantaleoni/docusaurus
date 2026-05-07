@@ -5,6 +5,7 @@
  * LICENSE file in the root directory of this source tree.
  */
 
+import {jest} from '@jest/globals';
 import fs from 'fs-extra';
 import path from 'path';
 import os from 'os';
@@ -12,6 +13,8 @@ import execa from 'execa';
 
 import {
   FileNotTrackedError,
+  GitNotFoundError,
+  createGitInfoReader,
   getFileCommitDate,
   getGitLastUpdate,
   getGitCreation,
@@ -387,6 +390,35 @@ describe('commit info APIs', () => {
           },
         }
       `);
+    });
+  });
+
+  describe('createGitInfoReader()', () => {
+    it('scopes warning flags to each reader instance', async () => {
+      const warnA = jest.fn();
+      const warnB = jest.fn();
+
+      const getFileCommitDateAlwaysNoGit = async () => {
+        throw new GitNotFoundError('no git');
+      };
+
+      const readerA = createGitInfoReader({
+        logger: {warn: warnA},
+        // @ts-expect-error: test stub throws
+        getFileCommitDate: getFileCommitDateAlwaysNoGit,
+      });
+      const readerB = createGitInfoReader({
+        logger: {warn: warnB},
+        // @ts-expect-error: test stub throws
+        getFileCommitDate: getFileCommitDateAlwaysNoGit,
+      });
+
+      await expect(readerA.getGitLastUpdate('/any')).resolves.toBeNull();
+      await expect(readerA.getGitLastUpdate('/any')).resolves.toBeNull();
+      expect(warnA).toHaveBeenCalledTimes(1);
+
+      await expect(readerB.getGitLastUpdate('/any')).resolves.toBeNull();
+      expect(warnB).toHaveBeenCalledTimes(1);
     });
   });
 });

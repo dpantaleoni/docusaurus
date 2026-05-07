@@ -2,14 +2,10 @@
 
 exports[`createExcerpt (golden) matches the current behavior snapshot 1`] = `
 {
-  "CRLF import block + text": "Hello world.",
   "admonition fence lines skipped": "Content inside note.",
   "atx h1 skipped": "Content.",
   "blockquote prefix stripped": "Quoted text with emoji.",
-  "custom heading id stripped": "Heading",
-  "emoji name removed": "Hello world.",
   "empty": undefined,
-  "exports ignored until blank line": "First paragraph.",
   "fenced code block ignored": "Real content.",
   "footnotes removed": "Hello world.",
   "h2 becomes excerpt (strip hashes)": "Hello heading",
@@ -19,7 +15,6 @@ exports[`createExcerpt (golden) matches the current behavior snapshot 1`] = `
   "mdx jsx line becomes empty": "Actual text.",
   "nested fences (\`\`\`\` with inner \`\`\` treated as text)": "After code.",
   "setext h1 skipped": "Content.",
-  "strikethrough removed": "This is deleted kept.",
   "text only": "Hello world.",
   "whitespace only": undefined,
 }

@@ -5,6 +5,7 @@
  * LICENSE file in the root directory of this source tree.
  */
 
+import {createContentHelpersFactory} from '@docusaurus/utils';
 import type {DocMetadata, LoadedContent} from '@docusaurus/plugin-content-docs';
 
 function indexDocsBySource(content: LoadedContent): Map<string, DocMetadata> {
@@ -20,15 +21,12 @@ export function createContentHelpers() {
   const sourceToDoc = new Map<string, DocMetadata>();
   const sourceToPermalink = new Map<string, string>();
 
-  // Mutable map update :/
-  function updateContent(content: LoadedContent): void {
-    sourceToDoc.clear();
-    sourceToPermalink.clear();
-    indexDocsBySource(content).forEach((value, key) => {
-      sourceToDoc.set(key, value);
-      sourceToPermalink.set(key, value.permalink);
-    });
-  }
+  const {updateContent} = createContentHelpersFactory({
+    sourceToValue: sourceToDoc,
+    sourceToPermalink,
+    createSourceToValue: indexDocsBySource,
+    getValuePermalink: (doc) => doc.permalink,
+  });
 
   return {updateContent, sourceToDoc, sourceToPermalink};
 }

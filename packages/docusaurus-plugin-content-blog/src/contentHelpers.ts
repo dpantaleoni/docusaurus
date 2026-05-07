@@ -5,6 +5,7 @@
  * LICENSE file in the root directory of this source tree.
  */
 
+import {createContentHelpersFactory} from '@docusaurus/utils';
 import type {BlogContent, BlogPost} from '@docusaurus/plugin-content-blog';
 
 function indexBlogPostsBySource(content: BlogContent): Map<string, BlogPost> {
@@ -21,15 +22,12 @@ export function createContentHelpers() {
   const sourceToBlogPost = new Map<string, BlogPost>();
   const sourceToPermalink = new Map<string, string>();
 
-  // Mutable map update :/
-  function updateContent(content: BlogContent): void {
-    sourceToBlogPost.clear();
-    sourceToPermalink.clear();
-    indexBlogPostsBySource(content).forEach((value, key) => {
-      sourceToBlogPost.set(key, value);
-      sourceToPermalink.set(key, value.metadata.permalink);
-    });
-  }
+  const {updateContent} = createContentHelpersFactory({
+    sourceToValue: sourceToBlogPost,
+    sourceToPermalink,
+    createSourceToValue: indexBlogPostsBySource,
+    getValuePermalink: (blogPost) => blogPost.metadata.permalink,
+  });
 
   return {updateContent, sourceToBlogPost, sourceToPermalink};
 }

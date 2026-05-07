@@ -130,3 +130,8 @@ export {
 export {VcsPresetNames, getVcsPreset, TEST_VCS} from './vcs/vcs';
 
 export {normalizeTags, reportInlineTags} from './tags';
+
+export {
+  createContentHelpersFactory,
+  type CreateContentHelpersFactoryParams,
+} from './contentHelpersFactory';

@@ -8,7 +8,7 @@
 import {jest} from '@jest/globals';
 import path from 'path';
 import fs from 'fs-extra';
-import {readOutputHTMLFile, generate} from '../emitUtils';
+import {createFileEmitter, readOutputHTMLFile, generate} from '../emitUtils';
 
 describe('readOutputHTMLFile', () => {
   it('reads both files with trailing slash undefined', async () => {
@@ -154,5 +154,18 @@ describe('generate', () => {
       path.join(__dirname, 'foo'),
       'bar',
     );
+  });
+
+  it('has instance-scoped cache with createFileEmitter()', async () => {
+    writeMock.mockClear();
+    existsMock.mockImplementation(() => false);
+
+    const emitterA = createFileEmitter();
+    const emitterB = createFileEmitter();
+
+    await emitterA.generate(__dirname, 'scoped.txt', 'hello');
+    await emitterB.generate(__dirname, 'scoped.txt', 'hello');
+
+    expect(writeMock).toHaveBeenCalledTimes(2);
   });
 });

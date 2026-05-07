@@ -10,10 +10,17 @@ import fs from 'fs-extra';
 import {createHash} from 'crypto';
 import {findAsyncSequential} from './jsUtils';
 
-const fileHash = new Map<string, string>();
-
 const hashContent = (content: string): string => {
   return createHash('md5').update(content).digest('hex');
+};
+
+export type FileEmitter = {
+  generate: (
+    generatedFilesDir: string,
+    file: string,
+    content: string,
+    skipCache?: boolean,
+  ) => Promise<void>;
 };
 
 /**
@@ -27,44 +34,56 @@ const hashContent = (content: string): string => {
  * @param skipCache If `true` (defaults as `true` for production), file is
  * force-rewritten, skipping cache.
  */
-export async function generate(
-  generatedFilesDir: string,
-  file: string,
-  content: string,
-  skipCache: boolean = process.env.NODE_ENV === 'production',
-): Promise<void> {
-  const filepath = path.resolve(generatedFilesDir, file);
+export function createFileEmitter(): FileEmitter {
+  const fileHash = new Map<string, string>();
 
-  if (skipCache) {
-    await fs.outputFile(filepath, content);
-    // Cache still needs to be reset, otherwise, writing "A", "B", and "A" where
-    // "B" skips cache will cause the last "A" not be able to overwrite as the
-    // first "A" remains in cache. But if the file never existed in cache, no
-    // need to register it.
-    if (fileHash.get(filepath)) {
-      fileHash.set(filepath, hashContent(content));
+  const generate: FileEmitter['generate'] = async (
+    generatedFilesDir,
+    file,
+    content,
+    skipCache = process.env.NODE_ENV === 'production',
+  ) => {
+    const filepath = path.resolve(generatedFilesDir, file);
+
+    if (skipCache) {
+      await fs.outputFile(filepath, content);
+      // Cache still needs to be reset, otherwise, writing "A", "B", and "A" where
+      // "B" skips cache will cause the last "A" not be able to overwrite as the
+      // first "A" remains in cache. But if the file never existed in cache, no
+      // need to register it.
+      if (fileHash.get(filepath)) {
+        fileHash.set(filepath, hashContent(content));
+      }
+      return;
     }
-    return;
-  }
 
-  let lastHash = fileHash.get(filepath);
+    let lastHash = fileHash.get(filepath);
 
-  // If file already exists but it's not in runtime cache yet, we try to
-  // calculate the content hash and then compare. This is to avoid unnecessary
-  // overwriting and we can reuse old file.
-  if (!lastHash && (await fs.pathExists(filepath))) {
-    const lastContent = await fs.readFile(filepath, 'utf8');
-    lastHash = hashContent(lastContent);
-    fileHash.set(filepath, lastHash);
-  }
+    // If file already exists but it's not in runtime cache yet, we try to
+    // calculate the content hash and then compare. This is to avoid unnecessary
+    // overwriting and we can reuse old file.
+    if (!lastHash && (await fs.pathExists(filepath))) {
+      const lastContent = await fs.readFile(filepath, 'utf8');
+      lastHash = hashContent(lastContent);
+      fileHash.set(filepath, lastHash);
+    }
 
-  const currentHash = hashContent(content);
+    const currentHash = hashContent(content);
 
-  if (lastHash !== currentHash) {
-    await fs.outputFile(filepath, content);
-    fileHash.set(filepath, currentHash);
-  }
+    if (lastHash !== currentHash) {
+      await fs.outputFile(filepath, content);
+      fileHash.set(filepath, currentHash);
+    }
+  };
+
+  return {generate};
 }
+
+const defaultFileEmitter = createFileEmitter();
+
+export const generate: FileEmitter['generate'] = (...args) => {
+  return defaultFileEmitter.generate(...args);
+};
 
 /**
  * @param permalink The URL that the HTML file corresponds to, without base URL

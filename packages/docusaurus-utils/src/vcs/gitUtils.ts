@@ -207,62 +207,83 @@ export async function getFileCommitDate(
   return {date, timestamp};
 }
 
-let showedGitRequirementError = false;
-let showedFileNotTrackedError = false;
-
 type GitCommitInfo = {timestamp: number; author: string};
 
-async function getGitCommitInfo(
-  filePath: string,
-  age: 'oldest' | 'newest',
-): Promise<GitCommitInfo | null> {
-  if (!filePath) {
-    return null;
-  }
-  // Wrap in try/catch in case the shell commands fail
-  // (e.g. project doesn't use Git, etc).
-  try {
-    const result = await getFileCommitDate(filePath, {
-      age,
-      includeAuthor: true,
-    });
-    return {timestamp: result.timestamp, author: result.author};
-  } catch (err) {
-    // Task: legacy perf issue: do not use exceptions for control flow!
-    if (err instanceof GitNotFoundError) {
-      if (!showedGitRequirementError) {
-        logger.warn('Sorry, the last update options require Git.');
-        showedGitRequirementError = true;
-      }
-    } else if (err instanceof FileNotTrackedError) {
-      if (!showedFileNotTrackedError) {
-        logger.warn(
-          'Cannot infer the update date for some files, as they are not tracked by git.',
-        );
-        showedFileNotTrackedError = true;
-      }
-    } else {
-      throw new Error(
-        `An error occurred when trying to get the file ${
-          age === 'oldest' ? 'creation' : 'last update'
-        } date from Git`,
-        {cause: err},
-      );
+export type GitInfoReader = {
+  getGitLastUpdate: (filePath: string) => Promise<GitCommitInfo | null>;
+  getGitCreation: (filePath: string) => Promise<GitCommitInfo | null>;
+};
+
+export function createGitInfoReader(options?: {
+  logger?: Pick<typeof logger, 'warn'>;
+  getFileCommitDate?: typeof getFileCommitDate;
+}): GitInfoReader {
+  const loggerInstance = options?.logger ?? logger;
+  const getFileCommitDateInstance =
+    options?.getFileCommitDate ?? getFileCommitDate;
+
+  let showedGitRequirementError = false;
+  let showedFileNotTrackedError = false;
+
+  async function getGitCommitInfo(
+    filePath: string,
+    age: 'oldest' | 'newest',
+  ): Promise<GitCommitInfo | null> {
+    if (!filePath) {
+      return null;
     }
-    return null;
+    // Wrap in try/catch in case the shell commands fail
+    // (e.g. project doesn't use Git, etc).
+    try {
+      const result = await getFileCommitDateInstance(filePath, {
+        age,
+        includeAuthor: true,
+      });
+      return {timestamp: result.timestamp, author: result.author};
+    } catch (err) {
+      // Task: legacy perf issue: do not use exceptions for control flow!
+      if (err instanceof GitNotFoundError) {
+        if (!showedGitRequirementError) {
+          loggerInstance.warn('Sorry, the last update options require Git.');
+          showedGitRequirementError = true;
+        }
+      } else if (err instanceof FileNotTrackedError) {
+        if (!showedFileNotTrackedError) {
+          loggerInstance.warn(
+            'Cannot infer the update date for some files, as they are not tracked by git.',
+          );
+          showedFileNotTrackedError = true;
+        }
+      } else {
+        throw new Error(
+          `An error occurred when trying to get the file ${
+            age === 'oldest' ? 'creation' : 'last update'
+          } date from Git`,
+          {cause: err},
+        );
+      }
+      return null;
+    }
   }
+
+  return {
+    getGitLastUpdate: (filePath) => getGitCommitInfo(filePath, 'newest'),
+    getGitCreation: (filePath) => getGitCommitInfo(filePath, 'oldest'),
+  };
 }
+
+const defaultGitInfoReader = createGitInfoReader();
 
 export async function getGitLastUpdate(
   filePath: string,
 ): Promise<GitCommitInfo | null> {
-  return getGitCommitInfo(filePath, 'newest');
+  return defaultGitInfoReader.getGitLastUpdate(filePath);
 }
 
 export async function getGitCreation(
   filePath: string,
 ): Promise<GitCommitInfo | null> {
-  return getGitCommitInfo(filePath, 'oldest');
+  return defaultGitInfoReader.getGitCreation(filePath);
 }
 
 export async function getGitRepoRoot(cwd: string): Promise<string> {

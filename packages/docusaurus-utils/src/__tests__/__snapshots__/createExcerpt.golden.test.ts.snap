@@ -12,7 +12,7 @@ exports[`createExcerpt (golden) matches the current behavior snapshot 1`] = `
   "exports ignored until blank line": "First paragraph.",
   "fenced code block ignored": "Real content.",
   "footnotes removed": "Hello world.",
-  "h2 becomes excerpt (strip hashes)": "Hello heading ##",
+  "h2 becomes excerpt (strip hashes)": "Hello heading",
   "html tags stripped": "Hello world.",
   "imports ignored until blank line": "Content after imports.",
   "inline links/images/code/emphasis stripped": "Alt img",

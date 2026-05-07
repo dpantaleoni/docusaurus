@@ -26,7 +26,6 @@ barzy
 beforeinstallprompt
 Bhatt
 Blockquotes
-blockquotes
 Bokmål
 bunx
 BYOLLM
@@ -313,7 +312,6 @@ stackblitz
 stackoverflow
 Stormkit
 Strikethrough
-strikethroughs
 sublabel
 sublicensable
 sublist

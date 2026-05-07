@@ -166,13 +166,11 @@ function getRemarkExcerptAdapter(): RemarkExcerptAdapter {
       ?.unified) as unknown as typeof import('unified').unified;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const remarkParse = ((load('remark-parse') as any).default ??
-     
     (load(
       'remark-parse',
     ) as any)) as unknown as typeof import('remark-parse').default;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const remarkGfm = ((load('remark-gfm') as any).default ??
-     
     (load(
       'remark-gfm',
     ) as any)) as unknown as typeof import('remark-gfm').default;

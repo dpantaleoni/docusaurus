@@ -207,8 +207,20 @@ export async function getFileCommitDate(
   return {date, timestamp};
 }
 
-let showedGitRequirementError = false;
-let showedFileNotTrackedError = false;
+type GitWarningCategory = 'gitRequirement' | 'fileNotTracked';
+
+class GitWarningFacade {
+  private readonly shownWarnings = new Set<GitWarningCategory>();
+
+  warnOnce(category: GitWarningCategory, message: string): void {
+    if (!this.shownWarnings.has(category)) {
+      logger.warn(message);
+      this.shownWarnings.add(category);
+    }
+  }
+}
+
+const GitWarnings = new GitWarningFacade();
 
 type GitCommitInfo = {timestamp: number; author: string};
 
@@ -230,17 +242,15 @@ async function getGitCommitInfo(
   } catch (err) {
     // Task: legacy perf issue: do not use exceptions for control flow!
     if (err instanceof GitNotFoundError) {
-      if (!showedGitRequirementError) {
-        logger.warn('Sorry, the last update options require Git.');
-        showedGitRequirementError = true;
-      }
+      GitWarnings.warnOnce(
+        'gitRequirement',
+        'Sorry, the last update options require Git.',
+      );
     } else if (err instanceof FileNotTrackedError) {
-      if (!showedFileNotTrackedError) {
-        logger.warn(
-          'Cannot infer the update date for some files, as they are not tracked by git.',
-        );
-        showedFileNotTrackedError = true;
-      }
+      GitWarnings.warnOnce(
+        'fileNotTracked',
+        'Cannot infer the update date for some files, as they are not tracked by git.',
+      );
     } else {
       throw new Error(
         `An error occurred when trying to get the file ${

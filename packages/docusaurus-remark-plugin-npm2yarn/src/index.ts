@@ -127,46 +127,55 @@ const isParent = (node: Node): node is Parent =>
 const isNpm2Yarn = (node: Node): node is Code =>
   node.type === 'code' && (node as Code).meta === 'npm2yarn';
 
+type ImportBinding = {
+  localName: string;
+  source: string;
+};
+
+function createImportSourceLiteral(source: string) {
+  return {
+    type: 'Literal',
+    value: source,
+    raw: `'${source}'`,
+  };
+}
+
+function createDefaultImportSpecifier(localName: string) {
+  return {
+    type: 'ImportDefaultSpecifier',
+    local: {type: 'Identifier', name: localName},
+  };
+}
+
+function createDefaultImportDeclaration({localName, source}: ImportBinding) {
+  return {
+    type: 'ImportDeclaration',
+    specifiers: [createDefaultImportSpecifier(localName)],
+    source: createImportSourceLiteral(source),
+  };
+}
+
+function createImportProgram(imports: ImportBinding[]) {
+  return {
+    type: 'Program',
+    body: imports.map(createDefaultImportDeclaration),
+    sourceType: 'module',
+  };
+}
+
 function createImportNode() {
+  const imports = [
+    {localName: 'Tabs', source: '@theme/Tabs'},
+    {localName: 'TabItem', source: '@theme/TabItem'},
+  ];
+
   return {
     type: 'mdxjsEsm',
-    value:
-      "import Tabs from '@theme/Tabs'\nimport TabItem from '@theme/TabItem'",
+    value: imports
+      .map(({localName, source}) => `import ${localName} from '${source}'`)
+      .join('\n'),
     data: {
-      estree: {
-        type: 'Program',
-        body: [
-          {
-            type: 'ImportDeclaration',
-            specifiers: [
-              {
-                type: 'ImportDefaultSpecifier',
-                local: {type: 'Identifier', name: 'Tabs'},
-              },
-            ],
-            source: {
-              type: 'Literal',
-              value: '@theme/Tabs',
-              raw: "'@theme/Tabs'",
-            },
-          },
-          {
-            type: 'ImportDeclaration',
-            specifiers: [
-              {
-                type: 'ImportDefaultSpecifier',
-                local: {type: 'Identifier', name: 'TabItem'},
-              },
-            ],
-            source: {
-              type: 'Literal',
-              value: '@theme/TabItem',
-              raw: "'@theme/TabItem'",
-            },
-          },
-        ],
-        sourceType: 'module',
-      },
+      estree: createImportProgram(imports),
     },
   };
 }

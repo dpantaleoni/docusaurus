@@ -5,9 +5,8 @@
  * LICENSE file in the root directory of this source tree.
  */
 
-import {Joi} from '@docusaurus/utils-validation';
+import {Joi, createOptionsValidator} from '@docusaurus/utils-validation';
 import {ChangeFreqList, LastModOptionList} from './types';
-import type {OptionValidationContext} from '@docusaurus/types';
 import type {
   ChangeFreq,
   LastModOption,
@@ -117,10 +116,6 @@ const PluginOptionSchema = Joi.object<PluginOptions>({
   filename: Joi.string().default(DEFAULT_OPTIONS.filename),
 });
 
-export function validateOptions({
-  validate,
-  options,
-}: OptionValidationContext<Options, PluginOptions>): PluginOptions {
-  const validatedOptions = validate(PluginOptionSchema, options);
-  return validatedOptions;
-}
+export const validateOptions = createOptionsValidator<Options, PluginOptions>(
+  PluginOptionSchema,
+);

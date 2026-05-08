@@ -11,6 +11,7 @@ export {JoiFrontMatter} from './JoiFrontMatter';
 
 export {
   printWarning,
+  createOptionsValidator,
   normalizePluginOptions,
   normalizeThemeConfig,
   validateFrontMatter,

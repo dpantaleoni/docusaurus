@@ -13,9 +13,9 @@ import {
   AdmonitionsSchema,
   RouteBasePathSchema,
   URISchema,
+  createOptionsValidator,
 } from '@docusaurus/utils-validation';
 import {DEFAULT_PLUGIN_ID, GlobExcludeDefault} from '@docusaurus/utils';
-import type {OptionValidationContext} from '@docusaurus/types';
 import type {PluginOptions, Options} from '@docusaurus/plugin-content-pages';
 
 export const DEFAULT_OPTIONS: PluginOptions = {
@@ -60,10 +60,6 @@ const PluginOptionSchema = Joi.object<PluginOptions>({
   editLocalizedFiles: Joi.boolean().default(DEFAULT_OPTIONS.editLocalizedFiles),
 });
 
-export function validateOptions({
-  validate,
-  options,
-}: OptionValidationContext<Options, PluginOptions>): PluginOptions {
-  const validatedOptions = validate(PluginOptionSchema, options);
-  return validatedOptions;
-}
+export const validateOptions = createOptionsValidator<Options, PluginOptions>(
+  PluginOptionSchema,
+);

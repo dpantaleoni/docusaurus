@@ -14,6 +14,7 @@ import {
   AdmonitionsSchema,
   RouteBasePathSchema,
   URISchema,
+  createOptionsValidator,
 } from '@docusaurus/utils-validation';
 import {DEFAULT_PLUGIN_ID, GlobExcludeDefault} from '@docusaurus/utils';
 import type {
@@ -22,7 +23,6 @@ import type {
   FeedType,
   FeedXSLTOptions,
 } from '@docusaurus/plugin-content-blog';
-import type {OptionValidationContext} from '@docusaurus/types';
 
 export const DEFAULT_OPTIONS: PluginOptions = {
   id: DEFAULT_PLUGIN_ID,
@@ -248,10 +248,7 @@ const PluginOptionSchema = Joi.object<PluginOptions>({
     .default(DEFAULT_OPTIONS.onUntruncatedBlogPosts),
 }).default(DEFAULT_OPTIONS);
 
-export function validateOptions({
-  validate,
-  options,
-}: OptionValidationContext<Options | undefined, PluginOptions>): PluginOptions {
-  const validatedOptions = validate(PluginOptionSchema, options);
-  return validatedOptions;
-}
+export const validateOptions = createOptionsValidator<
+  Options | undefined,
+  PluginOptions
+>(PluginOptionSchema);

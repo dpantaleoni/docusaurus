@@ -106,3 +106,17 @@ ${errorDetails.map(({message}) => message)}
 
   return value;
 }
+
+type OptionsValidationContext<In, Out> = {
+  validate: (schema: Joi.ObjectSchema<Out>, options: In) => Out;
+  options: In;
+};
+
+export function createOptionsValidator<In, Out>(schema: Joi.ObjectSchema<Out>) {
+  return function validateOptions({
+    validate,
+    options,
+  }: OptionsValidationContext<In, Out>): Out {
+    return validate(schema, options);
+  };
+}

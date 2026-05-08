@@ -219,6 +219,93 @@ type ResultDispatcher =
   | {type: 'update'; value: ResultDispatcherState}
   | {type: 'advance'; value?: undefined};
 
+function createInitialSearchResultState(): ResultDispatcherState {
+  return {
+    items: [],
+    query: null,
+    totalResults: null,
+    totalPages: null,
+    lastPage: null,
+    hasMore: null,
+    loading: null,
+  };
+}
+
+function resetSearchResults(): ResultDispatcherState {
+  return createInitialSearchResultState();
+}
+
+function markSearchResultsLoading(
+  state: ResultDispatcherState,
+): ResultDispatcherState {
+  return {
+    ...state,
+    loading: true,
+  };
+}
+
+function updateSearchResults({
+  currentQuery,
+  previousState,
+  nextState,
+}: {
+  currentQuery: string | undefined;
+  previousState: ResultDispatcherState;
+  nextState: ResultDispatcherState;
+}): ResultDispatcherState {
+  if (currentQuery !== nextState.query) {
+    return previousState;
+  }
+
+  return {
+    ...nextState,
+    items:
+      nextState.lastPage === 0
+        ? nextState.items
+        : previousState.items.concat(nextState.items),
+  };
+}
+
+function advanceSearchResultsPage(
+  state: ResultDispatcherState,
+): ResultDispatcherState {
+  const hasMore = state.totalPages! > state.lastPage! + 1;
+
+  return {
+    ...state,
+    lastPage: hasMore ? state.lastPage! + 1 : state.lastPage,
+    hasMore,
+  };
+}
+
+function createSearchResultReducer(currentQuery: string | undefined) {
+  return (
+    previousState: ResultDispatcherState,
+    data: ResultDispatcher,
+  ): ResultDispatcherState => {
+    switch (data.type) {
+      case 'reset':
+        return resetSearchResults();
+
+      case 'loading':
+        return markSearchResultsLoading(previousState);
+
+      case 'update':
+        return updateSearchResults({
+          currentQuery,
+          previousState,
+          nextState: data.value,
+        });
+
+      case 'advance':
+        return advanceSearchResultsPage(previousState);
+
+      default:
+        return previousState;
+    }
+  };
+}
+
 function getSearchPageTitle(searchQuery: string | undefined): string {
   return searchQuery
     ? translate(
@@ -303,51 +390,9 @@ function useAlgoliaSearchPage() {
   const [searchQuery, setSearchQuery] = useSearchQueryString();
   const pageTitle = getSearchPageTitle(searchQuery);
 
-  const initialSearchResultState: ResultDispatcherState = {
-    items: [],
-    query: null,
-    totalResults: null,
-    totalPages: null,
-    lastPage: null,
-    hasMore: null,
-    loading: null,
-  };
   const [searchResultState, searchResultStateDispatcher] = useReducer(
-    (prevState: ResultDispatcherState, data: ResultDispatcher) => {
-      switch (data.type) {
-        case 'reset': {
-          return initialSearchResultState;
-        }
-        case 'loading': {
-          return {...prevState, loading: true};
-        }
-        case 'update': {
-          if (searchQuery !== data.value.query) {
-            return prevState;
-          }
-
-          return {
-            ...data.value,
-            items:
-              data.value.lastPage === 0
-                ? data.value.items
-                : prevState.items.concat(data.value.items),
-          };
-        }
-        case 'advance': {
-          const hasMore = prevState.totalPages! > prevState.lastPage! + 1;
-
-          return {
-            ...prevState,
-            lastPage: hasMore ? prevState.lastPage! + 1 : prevState.lastPage,
-            hasMore,
-          };
-        }
-        default:
-          return prevState;
-      }
-    },
-    initialSearchResultState,
+    createSearchResultReducer(searchQuery),
+    createInitialSearchResultState(),
   );
 
   // respect settings from the theme config for facets
